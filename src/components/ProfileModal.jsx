@@ -48,7 +48,7 @@ export default function ProfileModal({ profile, onClose, onUpdated }) {
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div className="modal-overlay" style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <h3 style={styles.heading}>Your profile</h3>
 
@@ -84,10 +84,11 @@ const styles = {
   overlay: {
     position: 'fixed', inset: 0, background: 'rgba(10,12,20,0.6)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
+    padding: 20, boxSizing: 'border-box',
   },
   modal: {
     width: '100%', maxWidth: 360, background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: 16, padding: 24,
+    borderRadius: 16, padding: 24, maxHeight: '85vh', overflowY: 'auto',
   },
   heading: { fontFamily: 'var(--font-display)', margin: '0 0 20px', fontSize: 20 },
   avatarSection: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 22 },

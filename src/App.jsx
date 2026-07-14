@@ -104,7 +104,7 @@ export default function App() {
   const activeConvo = conversations.find(c => c.id === activeId)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: 'var(--ink)' }}>
+    <div className="app-shell">
       <Sidebar
         profile={profile}
         conversations={conversations}
@@ -112,11 +112,14 @@ export default function App() {
         onSelect={setActiveId}
         onOpenProfile={() => setShowProfile(true)}
         onNewChat={() => setShowNewChat(true)}
+        mobileHidden={!!activeId}
       />
       <ChatWindow
         conversationId={activeId}
         myId={session.user.id}
         title={activeConvo?.title || ''}
+        onBack={() => setActiveId(null)}
+        mobileHidden={!activeId}
       />
       {showNewChat && (
         <NewChatModal

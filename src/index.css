@@ -58,3 +58,66 @@ input, textarea {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---- Responsive app shell ---- */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh; /* accounts for mobile browser chrome */
+  background: var(--ink);
+  overflow: hidden;
+}
+
+.app-sidebar {
+  width: 280px;
+  min-width: 280px;
+}
+
+.app-chat {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-back-btn {
+  display: none;
+}
+
+/* Phones and small tablets: stack into a single full-width pane,
+   toggling between the conversation list and the open chat. */
+@media (max-width: 768px) {
+  .app-sidebar,
+  .app-chat {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .app-sidebar.mobile-hide,
+  .app-chat.mobile-hide {
+    display: none;
+  }
+
+  .mobile-back-btn {
+    display: inline-flex;
+  }
+
+  /* Prevent iOS Safari from zooming in when an input is focused */
+  input,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Respect notches / home indicator */
+  .app-shell {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .modal-overlay {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .bubble-max {
+    max-width: 82% !important;
+  }
+}

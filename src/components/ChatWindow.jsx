@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-export default function ChatWindow({ conversationId, myId, title }) {
+export default function ChatWindow({ conversationId, myId, title, onBack, mobileHidden }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -96,15 +96,24 @@ export default function ChatWindow({ conversationId, myId, title }) {
 
   if (!conversationId) {
     return (
-      <div style={styles.emptyState}>
+      <div
+        className={`app-chat${mobileHidden ? ' mobile-hide' : ''}`}
+        style={styles.emptyState}
+      >
         <p style={styles.emptyText}>Select a chat, or start a new one.</p>
       </div>
     )
   }
 
   return (
-    <div style={styles.window}>
+    <div
+      className={`app-chat${mobileHidden ? ' mobile-hide' : ''}`}
+      style={styles.window}
+    >
       <div style={styles.header}>
+        <button className="mobile-back-btn" style={styles.backBtn} onClick={onBack} aria-label="Back to chats">
+          ←
+        </button>
         <h3 style={styles.headerTitle}>{title}</h3>
       </div>
 
@@ -113,7 +122,10 @@ export default function ChatWindow({ conversationId, myId, title }) {
           const mine = m.sender_id === myId
           return (
             <div key={m.id} style={{ ...styles.messageRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-              <div style={{ ...styles.bubble, background: mine ? 'var(--accent)' : 'var(--bubble-received)', color: mine ? '#1b1206' : 'var(--text)' }}>
+              <div
+                className="bubble-max"
+                style={{ ...styles.bubble, background: mine ? 'var(--accent)' : 'var(--bubble-received)', color: mine ? '#1b1206' : 'var(--text)' }}
+              >
                 {m.content && <span>{m.content}</span>}
                 {m.media_type === 'image' && (
                   <img src={m.media_url} alt="" style={styles.mediaImg} />
@@ -160,10 +172,14 @@ export default function ChatWindow({ conversationId, myId, title }) {
 }
 
 const styles = {
-  window: { flex: 1, display: 'flex', flexDirection: 'column', height: '100%' },
-  header: { padding: '18px 20px', borderBottom: '1px solid var(--border)' },
+  window: { display: 'flex', flexDirection: 'column', height: '100%' },
+  header: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--border)' },
+  backBtn: {
+    background: 'none', border: 'none', color: 'var(--text)', fontSize: 20,
+    padding: 4, margin: 0, lineHeight: 1, flexShrink: 0,
+  },
   headerTitle: { fontFamily: 'var(--font-display)', margin: 0, fontSize: 17, fontWeight: 600 },
-  messages: { flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 8 },
+  messages: { flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 8, WebkitOverflowScrolling: 'touch' },
   messageRow: { display: 'flex' },
   bubble: {
     maxWidth: '60%', padding: '10px 14px', borderRadius: 16, fontSize: 14.5,
