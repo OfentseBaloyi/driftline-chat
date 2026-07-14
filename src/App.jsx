@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from './supabaseClient'
 import Auth from './components/Auth'
+import ResetPassword from './components/ResetPassword'
 import Sidebar from './components/Sidebar'
 import ChatWindow from './components/ChatWindow'
 import NewChatModal from './components/NewChatModal'
@@ -14,13 +15,17 @@ export default function App() {
   const [activeId, setActiveId] = useState(null)
   const [showNewChat, setShowNewChat] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setLoadingSession(false)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, sess) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecovery(true)
+      }
       setSession(sess)
     })
     return () => listener.subscription.unsubscribe()
@@ -95,6 +100,16 @@ export default function App() {
 
   if (loadingSession) {
     return <div style={{ color: 'var(--mist)', padding: 40 }}>Loading…</div>
+  }
+
+  if (passwordRecovery) {
+    return (
+      <ResetPassword
+        onDone={() => {
+          setPasswordRecovery(false)
+        }}
+      />
+    )
   }
 
   if (!session) {

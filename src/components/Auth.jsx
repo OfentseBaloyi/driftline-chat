@@ -2,20 +2,27 @@ import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 
 export default function Auth() {
-  const [mode, setMode] = useState('signin') // signin | signup
+  const [mode, setMode] = useState('signin') // signin | signup | forgot
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmSent, setConfirmSent] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      if (mode === 'signup') {
+      if (mode === 'forgot') {
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        })
+        if (resetErr) throw resetErr
+        setResetSent(true)
+      } else if (mode === 'signup') {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -50,6 +57,13 @@ export default function Auth() {
               Back to sign in
             </button>
           </div>
+        ) : resetSent ? (
+          <div style={styles.confirmBox}>
+            <p>Check your email for a link to reset your password.</p>
+            <button style={styles.linkBtn} onClick={() => { setResetSent(false); setMode('signin') }}>
+              Back to sign in
+            </button>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} style={styles.form}>
             {mode === 'signup' && (
@@ -68,31 +82,56 @@ export default function Auth() {
               onChange={e => setEmail(e.target.value)}
               required
             />
-            <input
-              style={styles.input}
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
+            {mode !== 'forgot' && (
+              <input
+                style={styles.input}
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            )}
+            {mode === 'signin' && (
+              <button
+                type="button"
+                style={styles.forgotLink}
+                onClick={() => { setError(''); setMode('forgot') }}
+              >
+                Forgot password?
+              </button>
+            )}
             {error && <p style={styles.error}>{error}</p>}
             <button style={styles.submitBtn} type="submit" disabled={loading}>
-              {loading ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
+              {loading
+                ? 'Please wait…'
+                : mode === 'signup'
+                  ? 'Create account'
+                  : mode === 'forgot'
+                    ? 'Send reset link'
+                    : 'Sign in'}
             </button>
           </form>
         )}
 
-        {!confirmSent && (
+        {!confirmSent && !resetSent && (
           <p style={styles.switchLine}>
-            {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              style={styles.linkBtn}
-              onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
-            >
-              {mode === 'signup' ? 'Sign in' : 'Create one'}
-            </button>
+            {mode === 'forgot' ? (
+              <button style={styles.linkBtn} onClick={() => { setError(''); setMode('signin') }}>
+                Back to sign in
+              </button>
+            ) : (
+              <>
+                {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
+                <button
+                  style={styles.linkBtn}
+                  onClick={() => { setError(''); setMode(mode === 'signup' ? 'signin' : 'signup') }}
+                >
+                  {mode === 'signup' ? 'Sign in' : 'Create one'}
+                </button>
+              </>
+            )}
           </p>
         )}
       </div>
@@ -152,6 +191,10 @@ const styles = {
     marginTop: 6,
   },
   error: { color: 'var(--danger)', fontSize: 13, margin: 0 },
+  forgotLink: {
+    background: 'none', border: 'none', color: 'var(--mist)', fontSize: 12.5,
+    padding: 0, margin: '-4px 0 0', textAlign: 'left', textDecoration: 'underline',
+  },
   switchLine: { color: 'var(--mist)', fontSize: 13, marginTop: 22, textAlign: 'center' },
   linkBtn: {
     background: 'none',
