@@ -31,47 +31,11 @@ export default function NewChatModal({ myId, onClose, onCreated }) {
   async function startChat(otherUser) {
     setError('')
     try {
-      // Check if a 1:1 conversation already exists between these two users
-      const { data: myConvos } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', myId)
+      const { data: conversationId, error: rpcErr } = await supabase
+        .rpc('create_direct_conversation', { other_user_id: otherUser.id })
+      if (rpcErr) throw rpcErr
 
-      const myConvoIds = (myConvos || []).map(c => c.conversation_id)
-
-      let existingId = null
-      if (myConvoIds.length > 0) {
-        const { data: sharedRows } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', otherUser.id)
-          .in('conversation_id', myConvoIds)
-        if (sharedRows && sharedRows.length > 0) {
-          existingId = sharedRows[0].conversation_id
-        }
-      }
-
-      if (existingId) {
-        onCreated(existingId)
-        return
-      }
-
-      const { data: convo, error: convoErr } = await supabase
-        .from('conversations')
-        .insert({ is_group: false })
-        .select()
-        .single()
-      if (convoErr) throw convoErr
-
-      const { error: partErr } = await supabase
-        .from('conversation_participants')
-        .insert([
-          { conversation_id: convo.id, user_id: myId },
-          { conversation_id: convo.id, user_id: otherUser.id },
-        ])
-      if (partErr) throw partErr
-
-      onCreated(convo.id)
+      onCreated(conversationId)
     } catch (err) {
       setError(err.message)
     }
