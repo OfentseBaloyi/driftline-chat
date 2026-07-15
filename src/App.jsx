@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from './supabaseClient'
+import { enablePushNotifications } from './push'
 import Auth from './components/Auth'
 import ResetPassword from './components/ResetPassword'
 import Sidebar from './components/Sidebar'
@@ -87,6 +88,7 @@ export default function App() {
     }
     loadProfile(session.user.id)
     loadConversations(session.user.id)
+    enablePushNotifications(session.user.id)
 
     const channel = supabase
       .channel('conversations-refresh')
@@ -97,6 +99,30 @@ export default function App() {
 
     return () => supabase.removeChannel(channel)
   }, [session, loadProfile, loadConversations])
+
+  // If the app was opened by tapping a push notification, jump straight to that chat
+  useEffect(() => {
+    if (!session) return
+    const params = new URLSearchParams(window.location.search)
+    const conversationId = params.get('conversation')
+    if (conversationId) {
+      setActiveId(conversationId)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [session])
+
+  // If the app is already open in a tab, the service worker posts a message
+  // instead of navigating, so we handle it here.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    function handleMessage(event) {
+      if (event.data?.type === 'OPEN_CONVERSATION' && event.data.conversationId) {
+        setActiveId(event.data.conversationId)
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handleMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', handleMessage)
+  }, [])
 
   if (loadingSession) {
     return <div style={{ color: 'var(--mist)', padding: 40 }}>Loading…</div>
