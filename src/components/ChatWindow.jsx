@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-export default function ChatWindow({ conversationId, myId, title, onBack, mobileHidden }) {
+export default function ChatWindow({ conversationId, myId, title, onBack, mobileHidden, widthOverride }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -98,7 +98,7 @@ export default function ChatWindow({ conversationId, myId, title, onBack, mobile
     return (
       <div
         className={`app-chat${mobileHidden ? ' mobile-hide' : ''}`}
-        style={styles.emptyState}
+        style={widthOverride ? { ...styles.emptyState, width: widthOverride, flex: 'none' } : styles.emptyState}
       >
         <p style={styles.emptyText}>Select a chat, or start a new one.</p>
       </div>
@@ -108,7 +108,7 @@ export default function ChatWindow({ conversationId, myId, title, onBack, mobile
   return (
     <div
       className={`app-chat${mobileHidden ? ' mobile-hide' : ''}`}
-      style={styles.window}
+      style={widthOverride ? { ...styles.window, width: widthOverride, flex: 'none' } : styles.window}
     >
       <div style={styles.header}>
         <button className="mobile-back-btn" style={styles.backBtn} onClick={onBack} aria-label="Back to chats">

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-export default function Sidebar({ profile, conversations, activeId, onSelect, onOpenProfile, onNewChat, mobileHidden }) {
+export default function Sidebar({ profile, conversations, activeId, onSelect, onOpenProfile, onNewChat, mobileHidden, widthOverride }) {
   return (
     <div
       className={`app-sidebar${mobileHidden ? ' mobile-hide' : ''}`}
-      style={styles.sidebar}
+      style={widthOverride ? { ...styles.sidebar, width: widthOverride, minWidth: widthOverride } : styles.sidebar}
     >
       <div style={styles.header}>
         <button style={styles.avatarBtn} onClick={onOpenProfile} title="Your profile">

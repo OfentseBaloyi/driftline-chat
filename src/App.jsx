@@ -17,6 +17,20 @@ export default function App() {
   const [showNewChat, setShowNewChat] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  )
+
+  // Determine mobile vs desktop directly in JS (not just via CSS media queries),
+  // so the sidebar/chat toggle can never get "stuck" showing both or neither pane
+  // due to a stale stylesheet or cached build.
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -143,25 +157,33 @@ export default function App() {
   }
 
   const activeConvo = conversations.find(c => c.id === activeId)
+  const showSidebar = !isMobile || !activeId
+  const showChat = !isMobile || !!activeId
 
   return (
     <div className="app-shell">
-      <Sidebar
-        profile={profile}
-        conversations={conversations}
-        activeId={activeId}
-        onSelect={setActiveId}
-        onOpenProfile={() => setShowProfile(true)}
-        onNewChat={() => setShowNewChat(true)}
-        mobileHidden={!!activeId}
-      />
-      <ChatWindow
-        conversationId={activeId}
-        myId={session.user.id}
-        title={activeConvo?.title || ''}
-        onBack={() => setActiveId(null)}
-        mobileHidden={!activeId}
-      />
+      {showSidebar && (
+        <Sidebar
+          profile={profile}
+          conversations={conversations}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onOpenProfile={() => setShowProfile(true)}
+          onNewChat={() => setShowNewChat(true)}
+          mobileHidden={false}
+          widthOverride={isMobile ? '100%' : undefined}
+        />
+      )}
+      {showChat && (
+        <ChatWindow
+          conversationId={activeId}
+          myId={session.user.id}
+          title={activeConvo?.title || ''}
+          onBack={() => setActiveId(null)}
+          mobileHidden={false}
+          widthOverride={isMobile ? '100%' : undefined}
+        />
+      )}
       {showNewChat && (
         <NewChatModal
           myId={session.user.id}
