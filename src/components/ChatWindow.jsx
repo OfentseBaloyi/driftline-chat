@@ -47,6 +47,7 @@ export default function ChatWindow({
   const audioCtxRef = useRef(null)
   const waveformSamplesRef = useRef([])
   const recordTimerRef = useRef(null)
+  const mimeTypeRef = useRef('')
 
   useEffect(() => {
     const saved = localStorage.getItem(tideKey(conversationId))
@@ -154,6 +155,22 @@ export default function ChatWindow({
     }
   }
 
+  function pickAudioMimeType() {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/aac',
+      'audio/ogg;codecs=opus',
+    ]
+    for (const type of candidates) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+        return type
+      }
+    }
+    return '' // let the browser pick its own default
+  }
+
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -175,7 +192,9 @@ export default function ChatWindow({
         setRecordSeconds(s => s + 0.15)
       }, 150)
 
-      const recorder = new MediaRecorder(stream)
+      const mimeType = pickAudioMimeType()
+      mimeTypeRef.current = mimeType
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       audioChunksRef.current = []
       recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data)
       recorder.onstop = () => {
@@ -207,9 +226,14 @@ export default function ChatWindow({
 
     try {
       setUploading(true)
-      const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-      const path = `${conversationId}/${crypto.randomUUID()}.webm`
-      const { error: uploadErr } = await supabase.storage.from('chat-media').upload(path, blob)
+      // Use whatever format was actually recorded — Safari records audio/mp4, others audio/webm
+      const actualType = recorder.mimeType || mimeTypeRef.current || 'audio/webm'
+      const blob = new Blob(audioChunksRef.current, { type: actualType })
+      const ext = actualType.includes('mp4') ? 'm4a' : actualType.includes('ogg') ? 'ogg' : 'webm'
+      const path = `${conversationId}/${crypto.randomUUID()}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('chat-media')
+        .upload(path, blob, { contentType: actualType })
       if (uploadErr) throw uploadErr
       const { data: signed, error: signErr } = await supabase.storage
         .from('chat-media')
