@@ -65,7 +65,7 @@ export default function App() {
 
     const { data: allParts } = await supabase
       .from('conversation_participants')
-      .select('conversation_id, user_id, profiles(display_name, avatar_url)')
+      .select('conversation_id, user_id, profiles(id, display_name, avatar_url, mood_status, last_seen)')
       .in('conversation_id', convoIds)
 
     const { data: lastMessages } = await supabase
@@ -74,19 +74,43 @@ export default function App() {
       .in('conversation_id', convoIds)
       .order('created_at', { ascending: false })
 
+    const { data: convoRows } = await supabase
+      .from('conversations')
+      .select('id, anchored_message_id')
+      .in('id', convoIds)
+
+    const anchoredIds = (convoRows || []).map(c => c.anchored_message_id).filter(Boolean)
+    let anchoredMessages = []
+    if (anchoredIds.length > 0) {
+      const { data } = await supabase
+        .from('messages')
+        .select('id, content, media_type')
+        .in('id', anchoredIds)
+      anchoredMessages = data || []
+    }
+
     const result = convoIds.map(id => {
       const others = (allParts || []).filter(p => p.conversation_id === id && p.user_id !== userId)
       const other = others[0]
       const lastMsg = (lastMessages || []).find(m => m.conversation_id === id)
       let preview = ''
       if (lastMsg) {
-        preview = lastMsg.content || (lastMsg.media_type === 'image' ? '📷 Photo' : lastMsg.media_type === 'video' ? '🎥 Video' : '')
+        preview = lastMsg.content || (lastMsg.media_type === 'image' ? '📷 Photo' : lastMsg.media_type === 'video' ? '🎥 Video' : lastMsg.media_type === 'audio' ? '🎤 Voice note' : '')
       }
+      const convoRow = (convoRows || []).find(c => c.id === id)
+      const anchoredMessage = convoRow?.anchored_message_id
+        ? anchoredMessages.find(m => m.id === convoRow.anchored_message_id)
+        : null
       return {
         id,
         title: other?.profiles?.display_name || 'Unknown',
         otherAvatar: other?.profiles?.avatar_url,
+        otherId: other?.profiles?.id,
+        otherMood: other?.profiles?.mood_status,
+        otherLastSeen: other?.profiles?.last_seen,
         preview,
+        lastMessageAt: lastMsg?.created_at || null,
+        anchoredMessage,
       }
     })
 
@@ -104,6 +128,14 @@ export default function App() {
     loadConversations(session.user.id)
     enablePushNotifications(session.user.id)
 
+    // Ambient presence: let others see how recently you were active
+    const touchPresence = () => {
+      supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', session.user.id).then(() => {})
+    }
+    touchPresence()
+    const presenceInterval = setInterval(touchPresence, 45000)
+    window.addEventListener('focus', touchPresence)
+
     const channel = supabase
       .channel('conversations-refresh')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
@@ -111,7 +143,19 @@ export default function App() {
       })
       .subscribe()
 
-    return () => supabase.removeChannel(channel)
+    const presenceChannel = supabase
+      .channel('profiles-presence')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+        loadConversations(session.user.id)
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+      supabase.removeChannel(presenceChannel)
+      clearInterval(presenceInterval)
+      window.removeEventListener('focus', touchPresence)
+    }
   }, [session, loadProfile, loadConversations])
 
   // If the app was opened by tapping a push notification, jump straight to that chat
@@ -160,6 +204,15 @@ export default function App() {
   const showSidebar = !isMobile || !activeId
   const showChat = !isMobile || !!activeId
 
+  async function handleToggleAnchor(messageId) {
+    const alreadyAnchored = activeConvo?.anchoredMessage?.id === messageId
+    await supabase
+      .from('conversations')
+      .update({ anchored_message_id: alreadyAnchored ? null : messageId })
+      .eq('id', activeId)
+    loadConversations(session.user.id)
+  }
+
   return (
     <div className="app-shell">
       {showSidebar && (
@@ -179,6 +232,10 @@ export default function App() {
           conversationId={activeId}
           myId={session.user.id}
           title={activeConvo?.title || ''}
+          otherMood={activeConvo?.otherMood}
+          otherLastSeen={activeConvo?.otherLastSeen}
+          anchoredMessage={activeConvo?.anchoredMessage}
+          onToggleAnchor={handleToggleAnchor}
           onBack={() => setActiveId(null)}
           mobileHidden={false}
           widthOverride={isMobile ? '100%' : undefined}
