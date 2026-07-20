@@ -215,24 +215,38 @@ export default function ChatWindow({
       <div style={styles.messages}>
         {messages.map(m => {
           const mine = m.sender_id === myId
+          const hasMedia = m.media_type === 'image' || m.media_type === 'video'
+          const hasCaption = !!m.content || !!m.mood_tag
           return (
             <div key={m.id} style={{ ...styles.messageRow, justifyContent: mine ? 'flex-end' : 'flex-start', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', maxWidth: '82%', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', maxWidth: hasMedia ? 'min(300px, 82%)' : '82%', minWidth: 0 }}>
                 <div
                   className="bubble-max"
                   style={{
                     ...styles.bubble,
                     background: mine ? 'var(--accent)' : 'var(--bubble-received)',
                     color: mine ? '#1b1206' : 'var(--text)',
+                    padding: hasMedia ? 0 : styles.bubble.padding,
                   }}
                 >
-                  {m.mood_tag && <span style={{ marginRight: 6 }}>{moodEmoji(m.mood_tag)}</span>}
-                  {m.content && <span>{m.content}</span>}
-                  {m.media_type === 'image' && (
-                    <img src={m.media_url} alt="" style={styles.mediaImg} />
+                  {hasMedia && (
+                    <div style={{
+                      ...styles.mediaWrap,
+                      borderRadius: hasCaption ? '16px 16px 0 0' : 16,
+                    }}>
+                      {m.media_type === 'image' && (
+                        <img src={m.media_url} alt="" style={styles.mediaEl} />
+                      )}
+                      {m.media_type === 'video' && (
+                        <video src={m.media_url} controls style={styles.mediaEl} />
+                      )}
+                    </div>
                   )}
-                  {m.media_type === 'video' && (
-                    <video src={m.media_url} controls style={styles.mediaImg} />
+                  {hasCaption && (
+                    <div style={hasMedia ? styles.captionStrip : undefined}>
+                      {m.mood_tag && <span style={{ marginRight: 6 }}>{moodEmoji(m.mood_tag)}</span>}
+                      {m.content && <span>{m.content}</span>}
+                    </div>
                   )}
                 </div>
                 <div style={styles.bubbleFooter}>
@@ -311,7 +325,13 @@ const styles = {
   bubbleFooter: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, paddingLeft: 4 },
   timeTag: { fontSize: 10.5, color: 'var(--mist)' },
   readTag: { fontSize: 10.5, color: 'var(--mist)' },
-  mediaImg: { display: 'block', maxWidth: 'min(240px, 70vw)', width: 'auto', height: 'auto', borderRadius: 10, marginTop: 6 },
+  mediaWrap: {
+    lineHeight: 0, overflow: 'hidden', borderRadius: 16,
+  },
+  mediaEl: {
+    display: 'block', width: '100%', maxWidth: 'min(300px, 82vw)', height: 'auto',
+  },
+  captionStrip: { padding: '8px 14px 10px' },
   inputBar: {
     display: 'flex', alignItems: 'center', gap: 8, padding: 14,
     borderTop: '1px solid var(--border)',
