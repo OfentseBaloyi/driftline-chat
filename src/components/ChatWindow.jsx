@@ -216,8 +216,8 @@ export default function ChatWindow({
         {messages.map(m => {
           const mine = m.sender_id === myId
           return (
-            <div key={m.id} style={{ ...styles.messageRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', maxWidth: '82%' }}>
+            <div key={m.id} style={{ ...styles.messageRow, justifyContent: mine ? 'flex-end' : 'flex-start', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', maxWidth: '82%', minWidth: 0 }}>
                 <div
                   className="bubble-max"
                   style={{
@@ -301,8 +301,8 @@ const styles = {
     display: 'flex', flexDirection: 'column', minWidth: 130,
   },
   moodOption: { background: 'none', border: 'none', padding: '8px 10px', fontSize: 13, textAlign: 'left', borderRadius: 6, whiteSpace: 'nowrap' },
-  messages: { flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 10, WebkitOverflowScrolling: 'touch' },
-  messageRow: { display: 'flex' },
+  messages: { flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 20, display: 'flex', flexDirection: 'column', gap: 10, WebkitOverflowScrolling: 'touch' },
+  messageRow: { display: 'flex', width: '100%', minWidth: 0 },
   bubble: {
     maxWidth: '100%', padding: '10px 14px', borderRadius: 16, fontSize: 14.5,
     lineHeight: 1.4, animation: 'drift-in 0.25s ease', wordBreak: 'break-word',
