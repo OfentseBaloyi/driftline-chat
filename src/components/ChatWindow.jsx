@@ -306,11 +306,12 @@ const styles = {
   bubble: {
     maxWidth: '100%', padding: '10px 14px', borderRadius: 16, fontSize: 14.5,
     lineHeight: 1.4, animation: 'drift-in 0.25s ease', wordBreak: 'break-word',
+    overflow: 'hidden', boxSizing: 'border-box',
   },
   bubbleFooter: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, paddingLeft: 4 },
   timeTag: { fontSize: 10.5, color: 'var(--mist)' },
   readTag: { fontSize: 10.5, color: 'var(--mist)' },
-  mediaImg: { display: 'block', maxWidth: 240, borderRadius: 10, marginTop: 6 },
+  mediaImg: { display: 'block', maxWidth: 'min(240px, 70vw)', width: 'auto', height: 'auto', borderRadius: 10, marginTop: 6 },
   inputBar: {
     display: 'flex', alignItems: 'center', gap: 8, padding: 14,
     borderTop: '1px solid var(--border)',
