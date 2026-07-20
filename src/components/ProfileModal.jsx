@@ -1,11 +1,8 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-const MOOD_PRESETS = ['🌊 calm', '☀️ good day', '⛈️ busy', '🌫️ quiet', '🌙 winding down', '⚡ energized']
-
 export default function ProfileModal({ profile, onClose, onUpdated }) {
   const [displayName, setDisplayName] = useState(profile?.display_name || '')
-  const [moodStatus, setMoodStatus] = useState(profile?.mood_status || '')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
@@ -44,10 +41,10 @@ export default function ProfileModal({ profile, onClose, onUpdated }) {
     setError('')
     const { error: updateErr } = await supabase
       .from('profiles')
-      .update({ display_name: displayName, mood_status: moodStatus || null })
+      .update({ display_name: displayName })
       .eq('id', profile.id)
     if (updateErr) setError(updateErr.message)
-    else onUpdated({ ...profile, display_name: displayName, mood_status: moodStatus || null })
+    else onUpdated({ ...profile, display_name: displayName })
   }
 
   return (
@@ -72,35 +69,8 @@ export default function ProfileModal({ profile, onClose, onUpdated }) {
         <label style={styles.label}>Display name</label>
         <div style={styles.row}>
           <input style={styles.input} value={displayName} onChange={e => setDisplayName(e.target.value)} />
+          <button style={styles.smallBtn} onClick={saveName}>Save</button>
         </div>
-
-        <label style={{ ...styles.label, marginTop: 16 }}>Mood / weather status</label>
-        <input
-          style={{ ...styles.input, width: '100%', boxSizing: 'border-box', marginBottom: 8 }}
-          placeholder="🌊 calm"
-          value={moodStatus}
-          onChange={e => setMoodStatus(e.target.value)}
-          maxLength={24}
-        />
-        <div style={styles.moodRow}>
-          {MOOD_PRESETS.map(m => (
-            <button
-              key={m}
-              type="button"
-              style={{
-                ...styles.moodChip,
-                borderColor: moodStatus === m ? 'var(--accent)' : 'var(--border)',
-              }}
-              onClick={() => setMoodStatus(m)}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-
-        <button style={{ ...styles.smallBtn, width: '100%', marginTop: 14 }} onClick={saveName}>
-          Save changes
-        </button>
 
         {error && <p style={styles.error}>{error}</p>}
 
@@ -129,11 +99,6 @@ const styles = {
   avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
   avatarFallback: { fontSize: 28, color: 'var(--accent)', fontWeight: 600 },
   label: { fontSize: 12.5, color: 'var(--mist)', marginBottom: 6, display: 'block' },
-  moodRow: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-  moodChip: {
-    background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 20,
-    padding: '6px 10px', fontSize: 12.5, color: 'var(--text)',
-  },
   row: { display: 'flex', gap: 8 },
   input: {
     flex: 1, background: 'var(--surface-raised)', border: '1px solid var(--border)',

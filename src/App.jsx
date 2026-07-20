@@ -20,6 +20,16 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   )
+  const [theme, setTheme] = useState(() => localStorage.getItem('driftline:theme') || 'dark')
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('driftline:theme', theme)
+  }, [theme])
+
+  function toggleTheme() {
+    setTheme(t => (t === 'dark' ? 'light' : 'dark'))
+  }
 
   // Determine mobile vs desktop directly in JS (not just via CSS media queries),
   // so the sidebar/chat toggle can never get "stuck" showing both or neither pane
@@ -65,7 +75,7 @@ export default function App() {
 
     const { data: allParts } = await supabase
       .from('conversation_participants')
-      .select('conversation_id, user_id, profiles(id, display_name, avatar_url, mood_status, last_seen)')
+      .select('conversation_id, user_id, profiles(id, display_name, avatar_url, last_seen)')
       .in('conversation_id', convoIds)
 
     const { data: lastMessages } = await supabase
@@ -74,43 +84,21 @@ export default function App() {
       .in('conversation_id', convoIds)
       .order('created_at', { ascending: false })
 
-    const { data: convoRows } = await supabase
-      .from('conversations')
-      .select('id, anchored_message_id')
-      .in('id', convoIds)
-
-    const anchoredIds = (convoRows || []).map(c => c.anchored_message_id).filter(Boolean)
-    let anchoredMessages = []
-    if (anchoredIds.length > 0) {
-      const { data } = await supabase
-        .from('messages')
-        .select('id, content, media_type')
-        .in('id', anchoredIds)
-      anchoredMessages = data || []
-    }
-
     const result = convoIds.map(id => {
       const others = (allParts || []).filter(p => p.conversation_id === id && p.user_id !== userId)
       const other = others[0]
       const lastMsg = (lastMessages || []).find(m => m.conversation_id === id)
       let preview = ''
       if (lastMsg) {
-        preview = lastMsg.content || (lastMsg.media_type === 'image' ? '📷 Photo' : lastMsg.media_type === 'video' ? '🎥 Video' : lastMsg.media_type === 'audio' ? '🎤 Voice note' : '')
+        preview = lastMsg.content || (lastMsg.media_type === 'image' ? '📷 Photo' : lastMsg.media_type === 'video' ? '🎥 Video' : '')
       }
-      const convoRow = (convoRows || []).find(c => c.id === id)
-      const anchoredMessage = convoRow?.anchored_message_id
-        ? anchoredMessages.find(m => m.id === convoRow.anchored_message_id)
-        : null
       return {
         id,
         title: other?.profiles?.display_name || 'Unknown',
         otherAvatar: other?.profiles?.avatar_url,
         otherId: other?.profiles?.id,
-        otherMood: other?.profiles?.mood_status,
         otherLastSeen: other?.profiles?.last_seen,
         preview,
-        lastMessageAt: lastMsg?.created_at || null,
-        anchoredMessage,
       }
     })
 
@@ -128,7 +116,7 @@ export default function App() {
     loadConversations(session.user.id)
     enablePushNotifications(session.user.id)
 
-    // Ambient presence: let others see how recently you were active
+    // Ambient presence: let others see whether you're currently online
     const touchPresence = () => {
       supabase.from('profiles').update({ last_seen: new Date().toISOString() }).eq('id', session.user.id).then(() => {})
     }
@@ -204,15 +192,6 @@ export default function App() {
   const showSidebar = !isMobile || !activeId
   const showChat = !isMobile || !!activeId
 
-  async function handleToggleAnchor(messageId) {
-    const alreadyAnchored = activeConvo?.anchoredMessage?.id === messageId
-    await supabase
-      .from('conversations')
-      .update({ anchored_message_id: alreadyAnchored ? null : messageId })
-      .eq('id', activeId)
-    loadConversations(session.user.id)
-  }
-
   return (
     <div className="app-shell">
       {showSidebar && (
@@ -225,6 +204,8 @@ export default function App() {
           onNewChat={() => setShowNewChat(true)}
           mobileHidden={false}
           widthOverride={isMobile ? '100%' : undefined}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
       {showChat && (
@@ -232,10 +213,7 @@ export default function App() {
           conversationId={activeId}
           myId={session.user.id}
           title={activeConvo?.title || ''}
-          otherMood={activeConvo?.otherMood}
           otherLastSeen={activeConvo?.otherLastSeen}
-          anchoredMessage={activeConvo?.anchoredMessage}
-          onToggleAnchor={handleToggleAnchor}
           onBack={() => setActiveId(null)}
           mobileHidden={false}
           widthOverride={isMobile ? '100%' : undefined}

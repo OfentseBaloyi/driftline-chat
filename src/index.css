@@ -13,6 +13,25 @@
   --font-body: 'Inter', -apple-system, sans-serif;
 }
 
+:root[data-theme="light"] {
+  --ink: #f5f3ee;
+  --surface: #ffffff;
+  --surface-raised: #f0edE6;
+  --border: #e2ddd0;
+  --text: #211d15;
+  --mist: #7a7568;
+  --accent: #b9781f;
+  --accent-dim: #f0dbb0;
+  --bubble-received: #efeae0;
+  --danger: #c23b4d;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+}
+
+body, .app-shell {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 * { box-sizing: border-box; }
 
 html, body, #root {

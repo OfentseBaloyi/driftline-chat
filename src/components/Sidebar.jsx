@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { presenceLabel, conversationNudge } from '../presence'
+import { isOnline } from '../presence'
 
-export default function Sidebar({ profile, conversations, activeId, onSelect, onOpenProfile, onNewChat, mobileHidden, widthOverride }) {
+export default function Sidebar({ profile, conversations, activeId, onSelect, onOpenProfile, onNewChat, mobileHidden, widthOverride, theme, onToggleTheme }) {
   return (
     <div
       className={`app-sidebar${mobileHidden ? ' mobile-hide' : ''}`}
@@ -17,6 +16,9 @@ export default function Sidebar({ profile, conversations, activeId, onSelect, on
           )}
         </button>
         <h2 style={styles.title}>Driftline</h2>
+        <button style={styles.themeBtn} onClick={onToggleTheme} title="Toggle light/dark mode">
+          {theme === 'light' ? '🌙' : '☀️'}
+        </button>
         <button style={styles.newChatBtn} onClick={onNewChat} title="New chat">+</button>
       </div>
 
@@ -25,8 +27,7 @@ export default function Sidebar({ profile, conversations, activeId, onSelect, on
           <p style={styles.empty}>No chats yet. Tap + to start one.</p>
         )}
         {conversations.map(c => {
-          const presence = presenceLabel(c.otherLastSeen)
-          const nudge = conversationNudge(c.lastMessageAt)
+          const online = isOnline(c.otherLastSeen)
           return (
             <button
               key={c.id}
@@ -36,36 +37,19 @@ export default function Sidebar({ profile, conversations, activeId, onSelect, on
                 background: c.id === activeId ? 'var(--surface-raised)' : 'transparent',
               }}
             >
-              <div style={styles.convoAvatarWrap}>
-                <div style={styles.convoAvatar}>
-                  {c.otherAvatar ? (
-                    <img src={c.otherAvatar} alt="" style={styles.avatarImg} />
-                  ) : (
-                    <span style={styles.avatarFallback}>{(c.title || '?')[0].toUpperCase()}</span>
-                  )}
-                </div>
-                {presence && (
-                  <span
-                    style={{
-                      ...styles.presenceDot,
-                      opacity: 0.35 + presence.glow * 0.65,
-                      boxShadow: `0 0 ${4 + presence.glow * 8}px rgba(212,163,80,${presence.glow})`,
-                    }}
-                    title={presence.label}
-                  />
+              <div style={styles.convoAvatar}>
+                {c.otherAvatar ? (
+                  <img src={c.otherAvatar} alt="" style={styles.avatarImg} />
+                ) : (
+                  <span style={styles.avatarFallback}>{(c.title || '?')[0].toUpperCase()}</span>
                 )}
               </div>
               <div style={styles.convoText}>
-                <span style={styles.convoNameRow}>
-                  <span style={styles.convoName}>{c.title}</span>
-                  {c.otherMood && <span style={styles.moodTag}>{c.otherMood}</span>}
+                <span style={styles.convoName}>{c.title}</span>
+                <span style={{ ...styles.statusLine, color: online ? 'var(--accent)' : 'var(--mist)' }}>
+                  {online ? 'online' : 'offline'}
                 </span>
                 <span style={styles.convoPreview}>{c.preview || 'Say hi 👋'}</span>
-                {nudge && (
-                  <span style={{ ...styles.nudge, color: nudge.tone === 'warm' ? 'var(--accent)' : 'var(--mist)' }}>
-                    {nudge.tone === 'warm' ? '🔥 ' : '🌊 '}{nudge.text}
-                  </span>
-                )}
               </div>
             </button>
           )
@@ -90,7 +74,7 @@ const styles = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     padding: '18px 16px',
     borderBottom: '1px solid var(--border)',
   },
@@ -110,6 +94,10 @@ const styles = {
     width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: 'var(--accent)', fontWeight: 600, fontSize: 14,
   },
+  themeBtn: {
+    width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)',
+    background: 'var(--surface-raised)', fontSize: 14, lineHeight: 1,
+  },
   newChatBtn: {
     width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)',
     background: 'var(--surface-raised)', color: 'var(--accent)', fontSize: 18, lineHeight: 1,
@@ -120,21 +108,14 @@ const styles = {
     width: '100%', display: 'flex', alignItems: 'center', gap: 10, border: 'none',
     padding: 10, borderRadius: 10, textAlign: 'left', marginBottom: 2,
   },
-  convoAvatarWrap: { position: 'relative', flexShrink: 0 },
   convoAvatar: {
     width: 40, height: 40, borderRadius: '50%', background: 'var(--surface-raised)',
     overflow: 'hidden', flexShrink: 0,
   },
-  presenceDot: {
-    position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%',
-    background: 'var(--accent)', border: '2px solid var(--surface)',
-  },
   convoText: { display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 },
-  convoNameRow: { display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' },
-  moodTag: { fontSize: 11, color: 'var(--mist)', whiteSpace: 'nowrap', flexShrink: 0 },
   convoName: { color: 'var(--text)', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statusLine: { fontSize: 11, fontWeight: 600 },
   convoPreview: { color: 'var(--mist)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  nudge: { fontSize: 11, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   signOutBtn: {
     margin: 12, padding: '10px 0', background: 'none', border: '1px solid var(--border)',
     borderRadius: 10, color: 'var(--mist)', fontSize: 13,
